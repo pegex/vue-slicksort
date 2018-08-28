@@ -1,3 +1,4 @@
+import ScrollParent from 'scrollparent';
 import Manager from './Manager';
 import {
   closest,
@@ -62,12 +63,13 @@ export const ContainerMixin = {
   },
 
   mounted() {
+    const scrollParent = ScrollParent(this.$el);
     this.container = this.$el;
     this.document = this.container.ownerDocument || document;
     this._window = this.contentWindow || window;
     this.scrollContainer = this.useWindowAsScrollContainer
       ? this.document.body
-      : this.container;
+      : scrollParent;
 
     for (const key in this.events) {
       if (this.events.hasOwnProperty(key)) {
@@ -199,6 +201,7 @@ export const ContainerMixin = {
         const margin = getElementMargin(node);
 
         const containerBoundingRect = this.container.getBoundingClientRect();
+        const scrollContainerBoundingRect = this.scrollContainer.getBoundingClientRect();
         const dimensions = getHelperDimensions({index, node, collection});
 
         this.node = node;
@@ -261,26 +264,38 @@ export const ContainerMixin = {
         this.minTranslate = {};
         this.maxTranslate = {};
         if (this._axis.x) {
-          this.minTranslate.x = (useWindowAsScrollContainer
-            ? 0
-            : containerBoundingRect.left) -
+          this.minTranslate.x = containerBoundingRect.left -
             this.boundingClientRect.left -
             this.width / 2;
-          this.maxTranslate.x = (useWindowAsScrollContainer
+          this.maxTranslate.x = (containerBoundingRect.left + containerBoundingRect.width) -
+            this.boundingClientRect.left -
+            this.width / 2;
+          this.minTranslate.scrollx = (useWindowAsScrollContainer
+            ? 0
+            : scrollContainerBoundingRect.left) -
+            this.boundingClientRect.left -
+            this.width / 2;
+          this.maxTranslate.scrollx = (useWindowAsScrollContainer
             ? this._window.innerWidth
-            : containerBoundingRect.left + containerBoundingRect.width) -
+            : scrollContainerBoundingRect.left + scrollContainerBoundingRect.width) -
             this.boundingClientRect.left -
             this.width / 2;
         }
         if (this._axis.y) {
-          this.minTranslate.y = (useWindowAsScrollContainer
-            ? 0
-            : containerBoundingRect.top) -
+          this.minTranslate.y = containerBoundingRect.top -
             this.boundingClientRect.top -
             this.height / 2;
-          this.maxTranslate.y = (useWindowAsScrollContainer
+          this.maxTranslate.y = (containerBoundingRect.top + containerBoundingRect.height) -
+            this.boundingClientRect.top -
+            this.height / 2;
+          this.minTranslate.scrolly = (useWindowAsScrollContainer
+            ? 0
+            : scrollContainerBoundingRect.top) -
+            this.boundingClientRect.top -
+            this.height / 2;
+          this.maxTranslate.scrolly = (useWindowAsScrollContainer
             ? this._window.innerHeight
-            : containerBoundingRect.top + containerBoundingRect.height) -
+            : scrollContainerBoundingRect.top + scrollContainerBoundingRect.height) -
             this.boundingClientRect.top -
             this.height / 2;
         }
@@ -672,18 +687,18 @@ export const ContainerMixin = {
         y: 10,
       };
 
-      if (translate.y >= this.maxTranslate.y - this.height / 2) {
+      if (translate.y >= this.maxTranslate.scrolly - this.height / 2) {
         direction.y = 1; // Scroll Down
-        speed.y = acceleration.y * Math.abs((this.maxTranslate.y - this.height / 2 - translate.y) / this.height);
-      } else if (translate.x >= this.maxTranslate.x - this.width / 2) {
+        speed.y = acceleration.y * Math.abs((this.maxTranslate.scrolly - this.height / 2 - translate.y) / this.height);
+      } else if (translate.x >= this.maxTranslate.scrollx - this.width / 2) {
         direction.x = 1; // Scroll Right
-        speed.x = acceleration.x * Math.abs((this.maxTranslate.x - this.width / 2 - translate.x) / this.width);
-      } else if (translate.y <= this.minTranslate.y + this.height / 2) {
+        speed.x = acceleration.x * Math.abs((this.maxTranslate.scrollx - this.width / 2 - translate.x) / this.width);
+      } else if (translate.y <= this.minTranslate.scrolly + this.height / 2) {
         direction.y = -1; // Scroll Up
-        speed.y = acceleration.y * Math.abs((translate.y - this.height / 2 - this.minTranslate.y) / this.height);
-      } else if (translate.x <= this.minTranslate.x + this.width / 2) {
+        speed.y = acceleration.y * Math.abs((translate.y - this.height / 2 - this.minTranslate.scrolly) / this.height);
+      } else if (translate.x <= this.minTranslate.scrollx + this.width / 2) {
         direction.x = -1; // Scroll Left
-        speed.x = acceleration.x * Math.abs((translate.x - this.width / 2 - this.minTranslate.x) / this.width);
+        speed.x = acceleration.x * Math.abs((translate.x - this.width / 2 - this.minTranslate.scrollx) / this.width);
       }
 
       if (this.autoscrollInterval) {

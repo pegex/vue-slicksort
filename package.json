@@ -109,5 +109,8 @@
   "files": [
     "index.d.ts",
     "dist/*"
-  ]
+  ],
+  "dependencies": {
+    "scrollparent": "^2.0.1"
+  }
 }
