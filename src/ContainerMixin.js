@@ -31,8 +31,9 @@ export const ContainerMixin = {
     pressDelay:                 { type: Number,  default: 0 },
     pressThreshold:             { type: Number,  default: 5 },
     useDragHandle:              { type: Boolean, default: false },
-    useWindowAsScrollContainer: { type: Boolean, default: false },
+    autoScrollParent:           { type: Boolean, default: true },
     hideSortableGhost:          { type: Boolean, default: true },
+    appendHelperToContainer:    { type: Boolean, default: false },
     lockToContainerEdges:       { type: Boolean, default: false },
     lockOffset:                 { type: [String, Number, Array], default: '50%' },
     transitionDuration:         { type: Number,  default: 300 },
@@ -67,9 +68,9 @@ export const ContainerMixin = {
     this.container = this.$el;
     this.document = this.container.ownerDocument || document;
     this._window = this.contentWindow || window;
-    this.scrollContainer = this.useWindowAsScrollContainer
-      ? this.document.body
-      : scrollParent;
+    this.scrollContainer = this.autoScrollParent
+      ? scrollParent
+      : this.container;
 
     for (const key in this.events) {
       if (this.events.hasOwnProperty(key)) {
@@ -194,14 +195,23 @@ export const ContainerMixin = {
           getHelperDimensions,
           helperClass,
           hideSortableGhost,
-          useWindowAsScrollContainer,
         } = this.$props;
         const {node, collection} = active;
         const {index} = node.sortableInfo;
         const margin = getElementMargin(node);
 
         const containerBoundingRect = this.container.getBoundingClientRect();
-        const scrollContainerBoundingRect = this.scrollContainer.getBoundingClientRect();
+        let scrollContainerBoundingRect;
+        if (this.scrollContainer === this._window) {
+          scrollContainerBoundingRect = {
+            top: 0,
+            left: 0,
+            width: this._window.innerWidth,
+            height: this._window.innerHeight,
+          };
+        } else {
+          scrollContainerBoundingRect = this.scrollContainer.getBoundingClientRect();
+        }
         const dimensions = getHelperDimensions({index, node, collection});
 
         this.node = node;
@@ -245,7 +255,11 @@ export const ContainerMixin = {
           }
         });
 
-        this.helper = this.document.body.appendChild(clonedNode);
+        if (this.appendHelperToContainer) {
+          this.helper = this.container.appendChild(clonedNode);
+        } else {
+          this.helper = this.document.body.appendChild(clonedNode);
+        }
 
         this.helper.style.position = 'fixed';
         this.helper.style.top = `${this.boundingClientRect.top - margin.top}px`;
@@ -270,14 +284,10 @@ export const ContainerMixin = {
           this.maxTranslate.x = (containerBoundingRect.left + containerBoundingRect.width) -
             this.boundingClientRect.left -
             this.width / 2;
-          this.minTranslate.scrollx = (useWindowAsScrollContainer
-            ? 0
-            : scrollContainerBoundingRect.left) -
+          this.minTranslate.scrollX = scrollContainerBoundingRect.left -
             this.boundingClientRect.left -
             this.width / 2;
-          this.maxTranslate.scrollx = (useWindowAsScrollContainer
-            ? this._window.innerWidth
-            : scrollContainerBoundingRect.left + scrollContainerBoundingRect.width) -
+          this.maxTranslate.scrollX = (scrollContainerBoundingRect.left + scrollContainerBoundingRect.width) -
             this.boundingClientRect.left -
             this.width / 2;
         }
@@ -288,14 +298,10 @@ export const ContainerMixin = {
           this.maxTranslate.y = (containerBoundingRect.top + containerBoundingRect.height) -
             this.boundingClientRect.top -
             this.height / 2;
-          this.minTranslate.scrolly = (useWindowAsScrollContainer
-            ? 0
-            : scrollContainerBoundingRect.top) -
+          this.minTranslate.scrollY = scrollContainerBoundingRect.top -
             this.boundingClientRect.top -
             this.height / 2;
-          this.maxTranslate.scrolly = (useWindowAsScrollContainer
-            ? this._window.innerHeight
-            : scrollContainerBoundingRect.top + scrollContainerBoundingRect.height) -
+          this.maxTranslate.scrollY = (scrollContainerBoundingRect.top + scrollContainerBoundingRect.height) -
             this.boundingClientRect.top -
             this.height / 2;
         }
@@ -687,18 +693,18 @@ export const ContainerMixin = {
         y: 10,
       };
 
-      if (translate.y >= this.maxTranslate.scrolly - this.height / 2) {
+      if (translate.y >= this.maxTranslate.scrollY - this.height / 2) {
         direction.y = 1; // Scroll Down
-        speed.y = acceleration.y * Math.abs((this.maxTranslate.scrolly - this.height / 2 - translate.y) / this.height);
-      } else if (translate.x >= this.maxTranslate.scrollx - this.width / 2) {
+        speed.y = acceleration.y * Math.abs((this.maxTranslate.scrollY - this.height / 2 - translate.y) / this.height);
+      } else if (translate.x >= this.maxTranslate.scrollX - this.width / 2) {
         direction.x = 1; // Scroll Right
-        speed.x = acceleration.x * Math.abs((this.maxTranslate.scrollx - this.width / 2 - translate.x) / this.width);
-      } else if (translate.y <= this.minTranslate.scrolly + this.height / 2) {
+        speed.x = acceleration.x * Math.abs((this.maxTranslate.scrollX - this.width / 2 - translate.x) / this.width);
+      } else if (translate.y <= this.minTranslate.scrollY + this.height / 2) {
         direction.y = -1; // Scroll Up
-        speed.y = acceleration.y * Math.abs((translate.y - this.height / 2 - this.minTranslate.scrolly) / this.height);
-      } else if (translate.x <= this.minTranslate.scrollx + this.width / 2) {
+        speed.y = acceleration.y * Math.abs((translate.y - this.height / 2 - this.minTranslate.scrollY) / this.height);
+      } else if (translate.x <= this.minTranslate.scrollX + this.width / 2) {
         direction.x = -1; // Scroll Left
-        speed.x = acceleration.x * Math.abs((translate.x - this.width / 2 - this.minTranslate.scrollx) / this.width);
+        speed.x = acceleration.x * Math.abs((translate.x - this.width / 2 - this.minTranslate.scrollX) / this.width);
       }
 
       if (this.autoscrollInterval) {
