@@ -21,6 +21,7 @@ export const ContainerMixin = {
         move: this.handleMove,
         end: this.handleEnd,
       },
+      scrollContainer: {},
     };
   },
 
@@ -54,6 +55,38 @@ export const ContainerMixin = {
         width: node.offsetWidth,
         height: node.offsetHeight,
       }),
+    },
+  },
+
+  computed: {
+    scrollContainerLeft() {
+      if (this.scrollContainer.hasOwnProperty('scrollLeft')) {
+        return this.scrollContainer.scrollLeft;
+      }
+
+      // In case scrollContainer is window
+      else if (this.scrollContainer.hasOwnProperty('scrollX')) {
+        return this.scrollContainer.scrollX;
+      }
+
+      else {
+        return 0;
+      }
+    },
+
+    scrollContainerTop() {
+      if (this.scrollContainer.hasOwnProperty('scrollTop')) {
+        return this.scrollContainer.scrollTop;
+      }
+
+      // In case scrollContainer is window
+      else if (this.scrollContainer.hasOwnProperty('scrollY')) {
+        return this.scrollContainer.scrollY;
+      }
+
+      else {
+        return 0;
+      }
     },
   },
 
@@ -234,8 +267,8 @@ export const ContainerMixin = {
         this.offsetEdge = this.getEdgeOffset(node);
         this.initialOffset = this.getOffset(e);
         this.initialScroll = {
-          top: this.scrollContainer.scrollTop,
-          left: this.scrollContainer.scrollLeft,
+          top: this.scrollContainerTop,
+          left: this.scrollContainerLeft,
         };
 
         this.initialWindowScroll = {
@@ -521,8 +554,8 @@ export const ContainerMixin = {
       const {transitionDuration, hideSortableGhost} = this.$props;
       const nodes = this.manager.getOrderedRefs();
       const deltaScroll = {
-        left: this.scrollContainer.scrollLeft - this.initialScroll.left,
-        top: this.scrollContainer.scrollTop - this.initialScroll.top,
+        left: this.scrollContainerLeft - this.initialScroll.left,
+        top: this.scrollContainerTop - this.initialScroll.top,
       };
       const sortingOffset = {
         left: this.offsetEdge.left + this.translate.x + deltaScroll.left,
@@ -721,8 +754,8 @@ export const ContainerMixin = {
               left: 1 * speed.x * direction.x,
               top: 1 * speed.y * direction.y,
             };
-            this.scrollContainer.scrollTop += offset.top;
-            this.scrollContainer.scrollLeft += offset.left;
+            this.scrollContainerTop += offset.top;
+            this.scrollContainerLeft += offset.left;
             this.translate.x += offset.left;
             this.translate.y += offset.top;
             this.animateNodes();
